@@ -1,0 +1,49 @@
+{
+	"name": "@iyowa/runtime",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Run signed Isolated Web Apps in a normal browser tab",
+	"packageManager": "pnpm@12.16.1",
+	"exports": {
+		".": {
+			"types": "./sdk/index.ts",
+			"import": "./dist/sdk.js"
+		},
+		"./bundle": "./runtime/bundle.ts",
+		"./host": "./host/index.ts"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"dev": "node scripts/assets.ts && node host/cli.ts --dev",
+		"start": "node host/cli.ts",
+		"preview": "node host/cli.ts",
+		"build": "tsc --noEmit && vite build && node scripts/assets.ts",
+		"check": "biome check . && tsc --noEmit",
+		"format": "biome check --write .",
+		"test": "node --test tests/*.test.ts && playwright test",
+		"test:public": "node scripts/public.ts && PUBLIC_IWAS=1 playwright test tests/public.spec.ts"
+	},
+	"dependencies": {
+		"@mercuryworkshop/proxy-transports": "1.0.2",
+		"@mercuryworkshop/scramjet": "2.1.0",
+		"@mercuryworkshop/wisp-js": "0.5.3",
+		"cborg": "4.5.8",
+		"ipaddr.js": "2.3.0",
+		"postcss": "8.5.15",
+		"wbn": "0.0.10",
+		"wbn-sign": "0.3.3",
+		"ws": "8.23.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.6.8",
+		"@playwright/test": "1.65.1",
+		"@types/node": "26.6.6",
+		"@types/ws": "8.18.1",
+		"esbuild": "0.28.2",
+		"typescript": "7.0.2",
+		"vite": "8.3.8",
+		"wbn-sign-v1": "npm:wbn-sign@0.1.3"
+	}
+}
