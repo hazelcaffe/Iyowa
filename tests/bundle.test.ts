@@ -75,3 +75,21 @@ test("URL imports refuse local addresses and non-HTTPS schemes", async () => {
 	])
 		await assert.rejects(download(u));
 });
+
+import { frameSourceAllowed } from "../host/frame-source.ts";
+
+test("public frame source checks publisher headers before exposing bytes to Scramjet", () => {
+	const origin = "http://partition.localhost:4178";
+	assert.equal(frameSourceAllowed({ "access-control-allow-origin": "*" }, origin), true);
+	assert.equal(frameSourceAllowed({ "x-iyowa-embed": "allow" }, origin), true);
+	assert.equal(
+		frameSourceAllowed({ "access-control-allow-origin": "https://someone-else.example" }, origin),
+		false,
+	);
+	for (const headers of [
+		{},
+		{ "x-frame-options": "SAMEORIGIN", "access-control-allow-origin": "*" },
+		{ "content-security-policy": "frame-ancestors 'none'", "x-iyowa-embed": "allow" },
+	])
+		assert.equal(frameSourceAllowed(headers, origin), false);
+});

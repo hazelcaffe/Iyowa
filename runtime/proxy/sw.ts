@@ -1,6 +1,6 @@
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import { ScramjetFetchHandler, ScramjetHeaders } from "@mercuryworkshop/scramjet";
-import { context, transport } from "./context.ts";
+import { context, FrameRedirect, transport } from "./context.ts";
 
 type FetchEvent = Event & {
 	request: Request;
@@ -101,12 +101,17 @@ async function handle(e: FetchEvent) {
 		});
 	} catch (error) {
 		if (req.mode === "navigate") {
-			const reason = String(error).replace(
-				/[&<>]/g,
-				(c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] || c,
-			);
+			const escapeHtml = (s: string) =>
+				s.replace(
+					/[&<>"']/g,
+					(c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c,
+				);
+			const marker =
+				error instanceof FrameRedirect
+					? `<meta name="iyowa-redirect" content="${escapeHtml(error.destination)}">`
+					: "";
 			return new Response(
-				`<!doctype html><title>Frame unavailable</title><p>${reason}</p><script src="/.iyowa/frame-config.js"></script><script src="/.iyowa/frame-error.js"></script>`,
+				`<!doctype html><title>Frame unavailable</title>${marker}<p>${escapeHtml(String(error))}</p><script src="/.iyowa/frame-config.js"></script><script src="/.iyowa/frame-error.js"></script>`,
 				{
 					headers: {
 						"Content-Type": "text/html",

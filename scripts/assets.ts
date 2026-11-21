@@ -1,6 +1,7 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { build } from "esbuild";
 import { fixture } from "../fixtures/bundle.ts";
+import { frameDemo } from "../fixtures/frame-demo.ts";
 
 await mkdir("dist/runtime", { recursive: true });
 const js = "/.iyowa/";
@@ -38,4 +39,5 @@ await Promise.all([
 	}),
 	copyFile("node_modules/@mercuryworkshop/scramjet/dist/scramjet_bundled.js", "dist/runtime/scramjet.js"),
 	writeFile("dist/example.swbn", await fixture()),
+	writeFile("dist/controlled-frame-demo.swbn", await frameDemo()),
 ]);

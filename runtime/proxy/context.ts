@@ -2,7 +2,12 @@ import type { ProxyTransport } from "@mercuryworkshop/proxy-transports";
 import { CookieJar, defaultConfig, type ScramjetContext } from "@mercuryworkshop/scramjet";
 
 declare global {
-	var __iyowaFrame: { virtual: string; parent: string };
+	var __iyowaFrame: { virtual: string; parent: string; publicSource: boolean };
+}
+export class FrameRedirect extends Error {
+	constructor(readonly destination: string) {
+		super("Frame redirected");
+	}
 }
 export function context(): ScramjetContext {
 	return {
@@ -34,6 +39,26 @@ export function transport(): ProxyTransport {
 		async request(url, method, body, headers, signal) {
 			const virtual = globalThis.__iyowaFrame.virtual;
 			if (url.origin !== virtual) throw Error("Cross-origin managed request refused");
+			if (globalThis.__iyowaFrame.publicSource) {
+				if (method !== "GET" && method !== "HEAD")
+					throw Error("Public controlled-frame transport is read-only");
+				const reply = await fetch(
+					`/.iyowa/upstream?path=${encodeURIComponent(url.pathname + url.search)}`,
+					{ headers: { "X-Iyowa-Source": "1" }, credentials: "omit", signal },
+				);
+				if (!reply.ok)
+					throw Error((await reply.text()) || `Frame source returned HTTP ${reply.status}`);
+				const redirect = reply.headers.get("X-Iyowa-Redirect");
+				if (redirect) throw new FrameRedirect(redirect);
+				return {
+					body: method === "HEAD" ? new ArrayBuffer(0) : await reply.arrayBuffer(),
+					headers: [
+						["content-type", reply.headers.get("X-Iyowa-Type") || "application/octet-stream"],
+					],
+					status: Number(reply.headers.get("X-Iyowa-Status")) || 502,
+					statusText: "",
+				};
+			}
 			const packaged = virtual === "https://bundle.invalid";
 			const target = packaged
 				? `${location.origin}/.iyowa/resource${url.pathname}${url.search}`
@@ -53,7 +78,7 @@ export function transport(): ProxyTransport {
 				redirect: "error",
 				signal,
 			});
-			// Rewriting remote documents requires publisher opt-in; ordinary embedding stays native.
+			// The operator-configured transport also supports publisher-approved CORS requests.
 			if (!packaged && r.headers.get("X-Iyowa-Embed") !== "allow")
 				throw Error("Publisher did not opt in to managed embedding");
 			return {

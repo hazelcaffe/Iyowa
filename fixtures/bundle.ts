@@ -3,14 +3,16 @@ import { BundleBuilder } from "wbn";
 import { NodeCryptoSigningStrategy, SignedWebBundle } from "wbn-sign";
 import type { Manifest } from "../runtime/types.ts";
 // Public, deterministic DEMO key. Never use this identity for real software.
-export const demoKey = createPrivateKey({
-	key: Buffer.concat([
-		Buffer.from("302e020100300506032b657004220420", "hex"),
-		createHash("sha256").update("Iyowa public test fixture").digest(),
-	]),
-	format: "der",
-	type: "pkcs8",
-});
+export const testKey = (label: string) =>
+	createPrivateKey({
+		key: Buffer.concat([
+			Buffer.from("302e020100300506032b657004220420", "hex"),
+			createHash("sha256").update(label).digest(),
+		]),
+		format: "der",
+		type: "pkcs8",
+	});
+export const demoKey = testKey("Iyowa public test fixture");
 export async function fixture(
 	changes: Partial<Manifest> = {},
 	key: KeyObject = demoKey,

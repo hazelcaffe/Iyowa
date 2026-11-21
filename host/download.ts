@@ -4,32 +4,35 @@ import https from "node:https";
 import ipaddr from "ipaddr.js";
 import { MAX_BYTES } from "../runtime/bundle.ts";
 
-// Pin the validated address to the actual TLS connection, including on redirects.
+// Pin the validated address to the actual TLS connection. Callers must validate each redirect.
+export async function publicGet(url: URL, signal: AbortSignal, headers: Record<string, string> = {}) {
+	if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443"))
+		throw Error("Expected a public HTTPS URL on port 443");
+	const hostname = url.hostname.replace(/^\[|\]$/g, "");
+	const records = await lookup(hostname, { all: true });
+	if (!records.length || records.some((r) => ipaddr.process(r.address).range() !== "unicast"))
+		throw Error("Download address is not public");
+	const record = records.find((r) => r.family === 4) || records[0];
+	return new Promise<IncomingMessage>((ok, no) =>
+		https
+			.get(
+				url,
+				{
+					agent: false,
+					family: record.family,
+					signal,
+					lookup: (_h, _o, cb) => cb(null, record.address, record.family),
+					headers: { ...headers, "User-Agent": "Iyowa-IWA-runtime", "Accept-Encoding": "identity" },
+				},
+				ok,
+			)
+			.once("error", no),
+	);
+}
 export async function download(input: string, signal = AbortSignal.timeout(45000)) {
 	let url = new URL(input);
 	for (let i = 0; i <= 6; i++) {
-		if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443"))
-			throw Error("Bundle downloads require a public HTTPS URL on port 443");
-		const hostname = url.hostname.replace(/^\[|\]$/g, "");
-		const records = await lookup(hostname, { all: true });
-		if (!records.length || records.some((r) => ipaddr.process(r.address).range() !== "unicast"))
-			throw Error("Download address is not public");
-		const record = records.find((r) => r.family === 4) || records[0];
-		const res = await new Promise<IncomingMessage>((ok, no) =>
-			https
-				.get(
-					url,
-					{
-						agent: false,
-						family: record.family,
-						signal,
-						lookup: (_h, _o, cb) => cb(null, record.address, record.family),
-						headers: { "User-Agent": "Iyowa-IWA-runtime", "Accept-Encoding": "identity" },
-					},
-					ok,
-				)
-				.once("error", no),
-		);
+		const res = await publicGet(url, signal);
 		if ([301, 302, 303, 307, 308].includes(res.statusCode ?? 0) && res.headers.location) {
 			res.destroy();
 			url = new URL(res.headers.location, url);

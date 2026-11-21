@@ -7,5 +7,12 @@ void (async () => {
 		);
 	location.replace(`/view/${encodeURIComponent(decodeURIComponent(location.hash.slice(1)))}`);
 })().catch((e) => {
-	document.body.textContent = String(e);
+	parent.postMessage(
+		{
+			iyowa: "event",
+			name: "loadabort",
+			fields: { reason: `Cannot start the Scramjet service worker: ${String(e)}` },
+		},
+		globalThis.__iyowaFrame.parent,
+	);
 });

@@ -1,5 +1,7 @@
+import { installCapture } from "./capture.ts";
 import { installFrames } from "./controlled-frame.ts";
-import { displayMode, displayQuery } from "./display.ts";
+import { installDisplay } from "./display.ts";
+import { installPopups } from "./popups.ts";
 import { installSockets } from "./sockets.ts";
 import type { GuestConfig } from "./types.ts";
 
@@ -7,9 +9,9 @@ declare global {
 	var __iyowaConfig: GuestConfig;
 }
 const cfg = globalThis.__iyowaConfig;
-const nativeMatch = window.matchMedia.bind(window),
-	mode = displayMode(cfg.manifest);
-window.matchMedia = (query) => nativeMatch(displayQuery(query, mode));
+installDisplay(cfg);
+installCapture(cfg);
+installPopups(cfg);
 installSockets(cfg);
 installFrames(cfg);
 const virtual = (url: string) => url.replace(`${location.origin}/`, `isolated-app://${cfg.id}/`);
@@ -45,8 +47,12 @@ addEventListener("message", (e) => {
 		flush();
 	}
 });
+const popup = window.frameElement?.hasAttribute("data-iyowa-popup");
 const notify = (type: string, detail: unknown) =>
-	parent.postMessage({ iyowa: "runtime", type, detail }, cfg.shellOrigin);
+	parent.postMessage(
+		{ iyowa: popup ? "popup" : "runtime", type, detail },
+		popup ? location.origin : cfg.shellOrigin,
+	);
 addEventListener("error", (e) => notify("error", e.message));
 addEventListener("unhandledrejection", (e) => notify("error", String(e.reason)));
 addEventListener("DOMContentLoaded", () =>

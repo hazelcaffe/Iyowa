@@ -6,9 +6,17 @@ export function allows(manifest: Manifest, name: string, id: string) {
 		list.some((s) => ["self", "*", "src", `isolated-app://${id}`, `isolated-app://${id}/`].includes(s))
 	);
 }
+/** Browser capabilities needed to implement the IWA's declared APIs. */
+export function browserAllows(manifest: Manifest, feature: string, id: string) {
+	return (
+		allows(manifest, feature, id) ||
+		(feature === "display-capture" &&
+			allows(manifest, "all-screens-capture", id) &&
+			allows(manifest, "cross-origin-isolated", id))
+	);
+}
 export const browserFeatures = [
 	"accelerometer",
-	"ambient-light-sensor",
 	"autoplay",
 	"camera",
 	"clipboard-read",

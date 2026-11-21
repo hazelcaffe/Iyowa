@@ -14,6 +14,8 @@ type State = {
 	ready: boolean;
 	zoom: number;
 	last: string;
+	redirects: number;
+	failure?: HTMLElement;
 	partition: string;
 	observer: ResizeObserver;
 	pending: Map<string, (value: unknown, error?: string) => void>;
@@ -85,9 +87,40 @@ export function installFrames(config: GuestConfig) {
 	}
 	function reset(s: State) {
 		s.ready = false;
+		s.managed = "";
+		s.failure?.remove();
+		s.failure = undefined;
+		s.iframe.style.display = "block";
 		s.epoch++;
 		for (const cb of s.pending.values()) cb(undefined, "Frame navigated or detached");
 		s.pending.clear();
+	}
+	function failed(el: Frame, reason: string, target: string) {
+		const s = state(el);
+		s.ready = false;
+		s.failure?.remove();
+		s.iframe.style.display = "none";
+		const panel = document.createElement("div"),
+			message = document.createElement("p");
+		panel.setAttribute("role", "status");
+		message.textContent = reason;
+		panel.append(message);
+		try {
+			const u = new URL(target, location.href);
+			if (u.protocol === "https:" && !u.username && !u.password) {
+				const link = document.createElement("a");
+				link.href = u.href;
+				link.target = "_blank";
+				link.rel = "noopener noreferrer";
+				link.textContent = `Open ${u.hostname} in a browser tab`;
+				panel.append(link);
+			}
+		} catch {
+			/* Invalid URL: display only the error. */
+		}
+		s.failure = panel;
+		el.append(panel);
+		fire(el, "loadabort", { url: target, reason });
 	}
 	function send(el: Frame, op: string, arg?: unknown): Promise<unknown> {
 		const s = state(el);
@@ -123,9 +156,10 @@ export function installFrames(config: GuestConfig) {
 			)
 		).join("\n");
 	}
-	async function navigate(el: Frame, raw: string, push = true) {
+	async function navigate(el: Frame, raw: string, push = true, redirect = false) {
 		const s = state(el);
 		reset(s);
+		if (!redirect) s.redirects = 0;
 		const epoch = s.epoch;
 		try {
 			if (!enabled) throw new DOMException("controlled-frame not granted", "NotAllowedError");
@@ -150,7 +184,11 @@ export function installFrames(config: GuestConfig) {
 				s.history.splice(s.index + 1, Infinity, u.href);
 				s.index = s.history.length - 1;
 			}
-			if (u.origin === location.origin || config.managedOrigins.includes(u.origin)) {
+			if (
+				u.origin === location.origin ||
+				u.protocol === "https:" ||
+				config.managedOrigins.includes(u.origin)
+			) {
 				const virtual = u.origin === location.origin ? "https://bundle.invalid" : u.origin;
 				const partition = el.partition.startsWith("persist:")
 					? el.partition
@@ -163,17 +201,16 @@ export function installFrames(config: GuestConfig) {
 				const { origin } = await r.json();
 				if (s.epoch !== epoch) return;
 				s.managed = origin;
-				s.iframe.removeAttribute("credentialless");
 				s.iframe.src = `${origin}/.iyowa/start#${encodeURIComponent(virtual + u.pathname + u.search + u.hash)}`;
 			} else {
-				s.managed = "";
-				// COEP permits a native third-party embed in a credentialless browsing context.
-				s.iframe.setAttribute("credentialless", "");
-				s.iframe.src = u.href;
+				throw Error("Remote controlled frames need HTTPS or a configured development origin");
 			}
 		} catch (e) {
-			if (s.epoch === epoch)
-				fire(el, "loadabort", { reason: e instanceof Error ? e.message : String(e) });
+			if (s.epoch === epoch) {
+				s.managed = "";
+				s.iframe.removeAttribute("src");
+				failed(el, e instanceof Error ? e.message : String(e), raw);
+			}
 		}
 	}
 	function upgrade(el: Frame): State {
@@ -193,6 +230,7 @@ export function installFrames(config: GuestConfig) {
 			history: [],
 			index: -1,
 			last: "",
+			redirects: 0,
 			epoch: 0,
 			managed: "",
 			ready: false,
@@ -296,11 +334,6 @@ export function installFrames(config: GuestConfig) {
 			getAudioState: () => send(el, "audible"),
 			print: () => send(el, "print"),
 		});
-		iframe.onload = () => {
-			if (!s.managed && s.last && iframe.hasAttribute("src")) {
-				for (const e of ["loadcommit", "contentload", "loadstop"]) fire(el, e, { url: s.last });
-			}
-		};
 		return s;
 	}
 	// "controlledframe" is not a valid custom element name. Upgrade parser-created instances
@@ -357,7 +390,15 @@ export function installFrames(config: GuestConfig) {
 			const s = state(el);
 			if (e.source !== s.iframe.contentWindow || e.origin !== s.managed) continue;
 			const d = e.data;
-			if (d?.iyowa === "menu" && e.ports[0]) {
+			if (d?.iyowa === "redirect" && typeof d.url === "string") {
+				if (++s.redirects > 6) {
+					failed(el, "Too many frame redirects", s.last);
+					break;
+				}
+				fire(el, "loadredirect", { oldUrl: s.last, newUrl: d.url });
+				s.history[s.index] = d.url;
+				void navigate(el, d.url, false, true);
+			} else if (d?.iyowa === "menu" && e.ports[0]) {
 				const items = s.menus.applicable(d.context as MenuContext, s.last, matches);
 				e.ports[0].postMessage(items);
 				e.ports[0].close();
@@ -400,6 +441,10 @@ export function installFrames(config: GuestConfig) {
 				s.pending.get(d.id)?.(d.value, d.error);
 				s.pending.delete(d.id);
 			} else if (d?.iyowa === "event" && events.includes(d.name)) {
+				if (d.name === "loadabort") {
+					failed(el, String(d.fields?.reason || "Frame unavailable"), s.last);
+					break;
+				}
 				if (d.name === "loadcommit") s.ready = true;
 				if (d.name === "contentload")
 					for (const c of s.scripts.values())
@@ -427,6 +472,9 @@ export function installFrames(config: GuestConfig) {
 		}
 	});
 	const style = document.createElement("style");
-	style.textContent = "controlledframe{display:inline-block;width:300px;height:150px;overflow:hidden}";
+	// A grid/flex track can stretch the frame; a default size must not pin the Kitchen Sink
+	// demo to a 300px box when the author gives it the whole remaining row.
+	style.textContent =
+		":where(controlledframe){display:inline-block;min-inline-size:min(300px,100%);min-block-size:150px;overflow:auto}";
 	(document.head || document.documentElement).append(style);
 }

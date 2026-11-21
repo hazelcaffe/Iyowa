@@ -1,4 +1,4 @@
-import { allows, browserFeatures } from "../runtime/policy.ts";
+import { browserAllows, browserFeatures } from "../runtime/policy.ts";
 import type { AppInfo } from "../runtime/types.ts";
 
 export type { AppInfo, Manifest } from "../runtime/types.ts";
@@ -47,7 +47,7 @@ export class IwaSession extends EventTarget {
 			"allow-same-origin allow-scripts allow-downloads allow-forms allow-modals allow-pointer-lock allow-presentation allow-popups",
 		);
 		frame.allow = browserFeatures
-			.filter((f) => allows(app.manifest, f, app.id))
+			.filter((f) => browserAllows(app.manifest, f, app.id))
 			.map((f) => `${f} ${app.appOrigin}`)
 			.join("; ");
 		const pending = Promise.withResolvers<void>();

@@ -68,8 +68,8 @@ Outgoing TCP and connected UDP use Wisp v2 at the app origin. The relay checks b
 The `controlled-frame` and `cross-origin-isolated` manifest permissions enable the adapter. Static markup and `document.createElement("controlledframe")` both work.
 
 - **Bundled pages** run in managed frames automatically. The app, frame partition, and virtual site determine a distinct browser origin. `persist:` names are stable; other names are scoped to the app document's lifetime.
-- **Ordinary remote URLs** use a credentialless native iframe. The remote site's embedding policy applies.
-- **Managed remote sites** must be listed in `IYOWA_FRAME_ORIGINS` (a JSON array of origins). The publisher must allow CORS from the partition origin and expose `X-Iyowa-Embed: allow` on the resources being loaded. This enables Scramjet rewriting and the control bridge. The transport does not use the user's browser credentials. Example response headers for a public integration:
+- **Public HTTPS URLs** go through the Scramjet worker and a partition-scoped source relay on the local companion, with anonymous GET/HEAD requests. Resources must be publicly readable (`Access-Control-Allow-Origin: *` or the partition origin) or explicitly opt in (`X-Iyowa-Embed: allow`). The relay declines responses with `X-Frame-Options` or a CSP it cannot preserve. A failed navigation raises `loadabort` and provides an external link. Google Search returns `SAMEORIGIN`; Kitchen Sink's original Google page therefore opens separately. For an interactive remote-frame check, upload `dist/controlled-frame-demo.swbn`, select **Live MDN page**, then **Highlight headings**.
+- **Partner/development origins** listed in `IYOWA_FRAME_ORIGINS` still use the managed Scramjet path with a browser CORS transport. This supports local fixtures and opt-in requests beyond GET. The publisher must allow CORS from the partition origin and expose `X-Iyowa-Embed: allow`. Example response headers:
 
   ```http
   Access-Control-Allow-Origin: *
@@ -78,6 +78,13 @@ The `controlled-frame` and `cross-origin-isolated` manifest permissions enable t
   ```
 
 Managed frames support programmatic navigation/history, lifecycle and console events, CSS and script injection (including bundled files), content scripts, zoom, store clearing, audio muting, custom context menus and popup requests. Interceptors can cancel API-initiated navigations, block managed document fetch/XHR, or modify supported request headers. See [tested behavior and limitations](docs/compatibility.md) for the exact boundaries.
+
+## Capture, windows and OAuth
+
+- `getAllScreensMedia()` maps to the ordinary Chromium share picker for apps declaring `all-screens-capture` and `cross-origin-isolated`. It returns an array containing the **one surface the user chose**. Canceling or denying the picker rejects the request.
+- For an app declaring `display_override: ["unframed"]`, granting window-management permission switches its CSS and `matchMedia` to unframed. This updates inline styles as well as linked stylesheets inside the tab. A previous grant takes effect on load.
+- App-local `window.open()` popups are child windows inside the current app viewport, with a usable opener, `close()`, same-app storage, and a close button. External authorization pages open in the real browser. Popup blocking and user-activation requirements still apply there.
+- Kitchen Sink requests an OS-reachable callback listener. To test its OAuth page, start the companion with `IYOWA_SOCKET_BINDINGS='[{"id":"aiv4bxauvcu3zvbu6r5yynoh4atkzqqaoeof5mwz54b4zfywcrjuoaacai","protocol":"tcp","address":"127.0.0.1","port":0}]' pnpm dev`. Use a provider configured for loopback redirects, with CORS on its token endpoint. The test suite uses a local test issuer and synthetic credentials.
 
 ## Tests
 

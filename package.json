@@ -31,7 +31,6 @@
 		"@mercuryworkshop/wisp-js": "0.5.3",
 		"cborg": "4.5.8",
 		"ipaddr.js": "2.3.0",
-		"postcss": "8.5.15",
 		"wbn": "0.0.10",
 		"wbn-sign": "0.3.3",
 		"ws": "8.23.0"

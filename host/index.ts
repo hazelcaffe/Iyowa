@@ -4,13 +4,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ipaddr from "ipaddr.js";
-import postcss from "postcss";
 import type { ViteDevServer } from "vite";
 import { compareVersions, MAX_BYTES, RESERVED, readBundle, selectUpdate } from "../runtime/bundle.ts";
-import { displayMode, displayQuery } from "../runtime/display.ts";
-import { allows, browserFeatures } from "../runtime/policy.ts";
+import { allows, browserAllows, browserFeatures } from "../runtime/policy.ts";
 import type { AppInfo, Grant, GuestConfig } from "../runtime/types.ts";
 import { download, readLimited } from "./download.ts";
+import { serveFrameSource } from "./frame-source.ts";
 import { attachRelay } from "./relay.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -232,11 +231,18 @@ export async function createHost(options: HostOptions = {}) {
 			if (req.method !== "GET" && !head) return output(res, 405);
 			res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 			res.setHeader("Content-Security-Policy", `frame-ancestors ${frame.parent} ${shell()}`);
+			const publicSource =
+				frame.virtual !== "https://bundle.invalid" &&
+				!options.managedOrigins?.includes(frame.virtual);
+			if (path === `${RESERVED}upstream` && publicSource) {
+				if (req.headers["x-iyowa-source"] !== "1") return output(res, 403);
+				return serveFrameSource(frame.virtual, url.searchParams.get("path") || "/", base, res);
+			}
 			if (path === `${RESERVED}frame-error.js`)
 				return output(
 					res,
 					200,
-					`parent.postMessage({iyowa:'event',name:'loadabort',fields:{reason:document.querySelector('p')?.textContent}},globalThis.__iyowaFrame.parent);`,
+					`const redirect=document.querySelector('meta[name="iyowa-redirect"]')?.content;parent.postMessage(redirect?{iyowa:'redirect',url:redirect}:{iyowa:'event',name:'loadabort',fields:{reason:document.querySelector('p')?.textContent}},globalThis.__iyowaFrame.parent);`,
 					"text/javascript",
 				);
 			if (path.startsWith(RESERVED) && frameAssets.has(path.slice(RESERVED.length))) {
@@ -252,14 +258,14 @@ export async function createHost(options: HostOptions = {}) {
 				return output(
 					res,
 					200,
-					`globalThis.__iyowaFrame=${safeJS({ virtual: frame.virtual, parent: frame.parent })};`,
+					`globalThis.__iyowaFrame=${safeJS({ virtual: frame.virtual, parent: frame.parent, publicSource })};`,
 					"text/javascript",
 				);
 			if (path === `${RESERVED}start`)
 				return output(
 					res,
 					200,
-					`<!doctype html><meta charset=utf-8><script src="${RESERVED}proxy-start.js"></script>`,
+					`<!doctype html><meta charset=utf-8><script src="${RESERVED}frame-config.js"></script><script src="${RESERVED}proxy-start.js"></script>`,
 					"text/html",
 				);
 			if (path.startsWith(`${RESERVED}resource/`) && frame.virtual === "https://bundle.invalid") {
@@ -280,7 +286,13 @@ export async function createHost(options: HostOptions = {}) {
 			)
 				return output(res, 403);
 			const { virtual, partition } = JSON.parse((await readLimited(req, 4096)).toString());
-			if (virtual !== "https://bundle.invalid" && !cfg.managedOrigins.includes(virtual))
+			if (
+				typeof virtual !== "string" ||
+				typeof partition !== "string" ||
+				new URL(virtual).origin !== virtual
+			)
+				return output(res, 400, "Invalid frame origin or partition");
+			if (new URL(virtual).protocol !== "https:" && !cfg.managedOrigins.includes(virtual))
 				return output(res, 403);
 			const label =
 					"f-" +
@@ -309,7 +321,7 @@ export async function createHost(options: HostOptions = {}) {
 		])
 			if (r.headers[k]) res.setHeader(k, r.headers[k]);
 		const policy = browserFeatures
-			.map((f) => `${f}=${allows(app.manifest, f, app.id) ? "(self)" : "()"}`)
+			.map((f) => `${f}=${browserAllows(app.manifest, f, app.id) ? "(self)" : "()"}`)
 			.join(", ");
 		res.setHeader("Permissions-Policy", [
 			policy,
@@ -349,18 +361,7 @@ export async function createHost(options: HostOptions = {}) {
 			const prefix = ["worker", "sharedworker", "serviceworker"].includes(String(dest))
 				? `globalThis.__iyowaConfig=${safeJS(cfg)};\n${await built("runtime/worker.js")}\n`
 				: "";
-			let text = data.toString().replaceAll(app.origin, base);
-			if (type.startsWith("text/css") && text.includes("display-mode")) {
-				try {
-					const css = postcss.parse(text);
-					css.walkAtRules("media", (rule) => {
-						rule.params = displayQuery(rule.params, displayMode(app.manifest));
-					});
-					text = css.toString();
-				} catch {
-					/* Let the browser recover malformed CSS. */
-				}
-			}
+			const text = data.toString().replaceAll(app.origin, base);
 			data = Buffer.from(prefix + text);
 		}
 		if (r.headers.location) {
