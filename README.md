@@ -1,93 +1,107 @@
-# Iyowa
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="" width="72" height="72">
+</p>
 
-Iyowa runs signed [Isolated Web Apps](https://github.com/WICG/isolated-web-apps) in an ordinary Chromium tab. You can drop in a `.swbn`, paste a bundle or `update.json` URL, or install a built-in example. It needs no Chrome flags, enterprise policy, extension, or native IWA install. It emulates Direct Sockets, Controlled Frame, `getAllScreensMedia`, unframed windows, launch handling, and protocol handlers well enough for upstream apps such as the ChromeOS Kitchen Sink to run unmodified.
+<h1 align="center">Iyowa</h1>
+
+<p align="center">
+  <strong>Run signed Isolated Web Apps in an ordinary Chromium tab.</strong><br>
+  Direct Sockets, Controlled Frame and screen capture without ChromeOS, enterprise policy or flags.
+</p>
+
+<p align="center">
+  <a href="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml"><img src="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://hazelcaffe.github.io/Iyowa/"><img src="https://img.shields.io/badge/docs-hazelcaffe.github.io%2FIyowa-6a5cf6" alt="Documentation"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue" alt="License: AGPL-3.0-or-later"></a>
+</p>
+
+![The Iyowa library with installed Isolated Web Apps](docs/assets/library.png)
+
+[Isolated Web Apps](https://github.com/WICG/isolated-web-apps) are signed bundles that Chrome installs and runs with powerful APIs, such as raw TCP and UDP sockets and a `<controlledframe>` that can embed and script any website. Running one usually requires a managed ChromeOS device or developer flags. Iyowa verifies the bundle, serves it from its own origin on `localhost`, and emulates the IWA platform, so apps like the [ChromeOS Kitchen Sink](https://github.com/chromeos/iwa-sink) run **unmodified** in a normal tab.
+
+## Features
+
+- **Verified installs.** Drop a `.swbn`, choose a file, or paste a bundle or `update.json` URL. Iyowa checks the signature (Ed25519 or P-256, current and legacy formats), and updates must keep the signing key.
+- **Direct Sockets.** `TCPSocket`, `TCPServerSocket` and `UDPSocket` with streams, BYOB reads and multicast, over a policy-checked [Wisp](https://github.com/MercuryWorkshop/wisp-protocol) relay or real OS ports.
+- **Controlled Frame.** `<controlledframe>` runs any site through a per-partition [Scramjet](https://github.com/MercuryWorkshop/scramjet) proxy with in-browser TLS ([libcurl.js](https://github.com/ading2210/libcurl.js)). It supports script and CSS injection, request interception, context menus, `newwindow`, cookies and WebSockets.
+- **The rest of the platform.** `getAllScreensMedia()`, `display-mode: unframed`, in-tab popups, `launchQueue`, protocol handlers, and the app's own service workers.
+- **One permission to think about.** Public internet access follows the manifest. Reaching this computer or your LAN asks first, and if you block it, the app's sockets stay inside the tab.
+- **A launcher with developer tools.** A library, multiple running apps, a console, live socket inspection, a permissions editor, and a manifest viewer.
+- **An SDK.** The launcher is a client of `@iyowa/sdk`. Use the same API to embed IWAs in your own UI.
+
+| ![Kitchen Sink's controlled frame showing Google inside the app](docs/assets/controlled-frame.png) | ![Socket Lab with the developer tools' socket table](docs/assets/devtools.png) |
+| :------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------: |
+|                      Kitchen Sink drives a live site in its controlled frame                       |                 Raw TCP and UDP, inspected in developer tools                  |
+
+## Quick start
+
+Requires [Node.js](https://nodejs.org/) 24 or newer and a current Chromium-based browser (Chrome, Edge, Brave, and so on).
 
 ```sh
+git clone https://github.com/hazelcaffe/Iyowa.git
+cd Iyowa
+corepack enable        # provides the pnpm version pinned in package.json
 pnpm install
-pnpm dev            # http://localhost:4178, with UI hot reload
+pnpm dev               # open http://localhost:4178
 ```
 
-`pnpm build && pnpm start` serves the production build. `PORT` changes the port; keep it stable, because browser storage belongs to the origin. `IYOWA_DATA` changes the library directory, which defaults to `./.iyowa`. The server listens on `127.0.0.1`, and Chromium resolves `*.localhost` itself. `pnpm dev` restarts automatically when SDK sources change. UI edits hot-reload without restarting running apps.
+Install **Socket Lab** or **Controlled Frame Lab** from **Try an app**, or install a public IWA such as the Kitchen Sink from its update URL. For a production build, run `pnpm build && pnpm start`.
 
-## Layout
+| Variable     | Default    | Meaning                                                                          |
+| ------------ | ---------- | -------------------------------------------------------------------------------- |
+| `PORT`       | `4178`     | Launcher port. Keep it stable: each app's browser storage belongs to its origin. |
+| `IYOWA_DATA` | `./.iyowa` | Installed bundles and per-app permissions.                                       |
 
-| Package                        | What it is                                                                                                                                                                                |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`packages/sdk`](packages/sdk) | The runtime: bundle verification, the local host (HTTP router, Wisp relay, OS listeners, library store), the in-app compatibility layer, the controlled-frame proxy, and the browser SDK. |
-| [`packages/ui`](packages/ui)   | The launcher (React + Vite). It includes a library, install by file, drop, or URL, app windows, permission prompts, developer tools, and app details. It uses only the public SDK.        |
+The server listens on `127.0.0.1` only. Chromium resolves `*.localhost` itself, so no hosts-file setup is needed.
 
-## The launcher
+## Documentation
 
-- **Library:** installed apps with icons, versions, and capability chips. **Try an app** lists built-in examples (Controlled Frame Lab and Socket Lab) and public IWAs that install from their publishers' URLs.
-- **App view:** running apps stay alive in the sidebar while you switch between them. The toolbar shows the `isolated-app://` URL, home, reload, developer tools, and app info.
-- **Permission prompts:** when an app first needs your local network, Iyowa asks in an anchored prompt. Your answer is saved per app and can be changed later.
-- **Developer tools:** the app's console with level filters, every Direct Socket with its route and byte counts, permissions, and the parsed manifest.
-- **App info:** bundle ID, origin, digest, size, signature status, shortcuts, protocol handlers, **Check for updates** through `update_manifest_url`, and **Remove**.
+- [How Iyowa works](docs/architecture.md): origins, the in-app runtime, socket routes and the controlled-frame proxy
+- [SDK reference](docs/sdk.md): the browser API (`IwaRuntime`, `IwaSession`) and the Node host
+- [Compatibility](docs/compatibility.md): what is tested, against which apps, and where behavior differs from ChromeOS
+
+These docs are also published at **[hazelcaffe.github.io/Iyowa](https://hazelcaffe.github.io/Iyowa/)**.
 
 ## Permission model
 
-Manifest `permissions_policy` decides what an app may request. Iyowa grants the declared IWA features, as Chrome does for an installed IWA. You decide one thing: **local network access**.
+The manifest's `permissions_policy` decides what an app may use, as it does for an installed IWA in Chrome. Iyowa asks you about one thing, **local network access**:
 
-| Capability                                      | Needs                                                                                   |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Sockets to public internet addresses            | `direct-sockets` and `cross-origin-isolated`                                            |
-| Sockets to loopback/LAN, and real OS listeners  | additionally `direct-sockets-private`, and you **allow** local network access           |
-| Controlled frames showing public sites          | `controlled-frame` (or the pre-standard `controlledframe`) and `cross-origin-isolated`  |
-| Controlled frames showing LAN or loopback pages | additionally, you **allow** local network access                                        |
-| `getAllScreensMedia()`                          | `all-screens-capture`. It opens Chromium's share picker with entire screens preselected |
+| An app that declares                        | Can                                                                   | And, if you allow local network access                        |
+| ------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `direct-sockets`                            | connect to public internet addresses, and use loopback inside the app | n/a                                                           |
+| `direct-sockets` + `direct-sockets-private` | the same                                                              | reach this computer and your LAN, and listen on real OS ports |
+| `controlled-frame`                          | show public websites in frames                                        | also show LAN and loopback sites                              |
 
-The relay enforces policy at the address it actually connects to, after DNS resolution, so a public name can't rebind to a private address. **Block** doesn't break apps: loopback listeners and connections stay on an in-tab network shared by the app's windows and workers.
+Checks happen in the relay, at the address it actually connects to after DNS resolution. Answers are saved per app and can be changed in **Developer tools → Permissions** or **App info**.
 
-## Direct Sockets
+## Project layout
 
-`TCPSocket`, `TCPServerSocket`, and `UDPSocket` follow the [Direct Sockets](https://wicg.github.io/direct-sockets/) API, including streams, BYOB reads, EOF, `opened` and `closed`, bound and connected UDP, and the multicast controller. Each socket takes one of three routes, shown in developer tools:
-
-| Route       | When                                                              | How                                                                                                                               |
-| ----------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **in-app**  | Loopback without local network access                             | A SharedWorker hub per app, so windows and dedicated workers can listen and connect to each other                                 |
-| **network** | Outgoing TCP and UDP                                              | [Wisp](https://github.com/MercuryWorkshop/wisp-protocol) v2 via `wisp-js`. `opened` resolves after the remote handshake completes |
-| **system**  | `TCPServerSocket` and bound `UDPSocket` with local network access | Real OS sockets on this computer that other programs can reach                                                                    |
-
-## Controlled frames
-
-`<controlledframe>` uses a [Scramjet](https://github.com/MercuryWorkshop/scramjet) v2 proxy, the core behind browser.js. It never uses a native cross-origin iframe or an external link. Each app and partition gets its own origin, `p-<hash>.localhost`, with a Scramjet service worker. Pages are fetched with [libcurl.js](https://github.com/ading2210/libcurl.js) over that partition's Wisp relay, so TLS terminates in the browser and framing headers such as `X-Frame-Options` don't apply. Pages with WebSockets, cookies, and redirects work. `persist:` partitions keep cookies and storage across launches.
-
-The element supports navigation and history, all load events, `executeScript` and `insertCSS` (with code or bundled files), content scripts, `request.createWebRequestInterceptor` (block, rewrite request headers, observe responses), `contextMenus`, `newwindow` with `attach` and `discard`, `clearData`, zoom, audio muting, a user-agent override, `find`, and `print`. See [compatibility](docs/compatibility.md) for the edges.
-
-## Using the SDK
-
-Browser API (`@iyowa/sdk`, also served as `/sdk.js` by the host):
-
-```js
-import { IwaRuntime } from "/sdk.js";
-
-const runtime = new IwaRuntime();
-const app = await runtime.install(file); // or runtime.installURL("https://…/update.json")
-const session = runtime.launch(app, document.querySelector("main"));
-session.addEventListener("permissionrequest", (e) =>
-	e.respond(confirm(`${app.name}: ${e.reason}?`) ? "granted" : "denied"),
-);
-session.addEventListener("console", (e) => console.log(e.detail));
-await session.ready;
+```
+packages/
+  sdk/    @iyowa/sdk: bundle verification, host, in-app runtime, frame proxy, browser SDK
+  ui/     @iyowa/ui: the React launcher
+  site/   the GitHub Pages site, generated from docs/
+docs/     documentation and screenshots
 ```
 
-| API                                                                      | Behavior                                                                                                                                                                             |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `list()`, `examples()`, `install(blob)`, `installURL(url, {channel?})`   | Library. Installs verify the signature. Updates must keep the signing key, downgrades are refused, and an update manifest selects the newest version on the channel.                 |
-| `update(app)`, `remove(id)`, `setPermission(id, "local-network", state)` | Maintenance. `change` events fire on the runtime.                                                                                                                                    |
-| `launch(app, element, {path?})` → `IwaSession`                           | Starts the app in a new frame. Sessions expose `frame`, `ready`, `url`, `title`, `console`, `sockets`, `navigate`, `reload`, and `stop`.                                             |
-| `session` events                                                         | `ready`, `title`, `console`, `socket`, `update`, `stop`, and `permissionrequest` (`PermissionRequestEvent`: `name`, `reason`, `respond()`). Without a listener, requests are denied. |
-| `session.openProtocol(url)`, `session.deliverLaunch(url)`                | Manifest `protocol_handlers` and `launchQueue`                                                                                                                                       |
-
-Node API: `@iyowa/sdk/host` exports `createHost({ port, dataDir, ui })`, where `ui` is a static directory or a connect-style handler with an optional `upgrade` hook. `@iyowa/sdk/bundle` exports `readBundle(bytes)` for offline verification. `@iyowa/sdk/build` builds the runtime assets. Use `port: 0` for an ephemeral test host.
-
-## Tests
+## Development
 
 ```sh
-pnpm exec playwright install chromium   # once
-pnpm check                              # Biome + strict TypeScript
-pnpm test                               # unit tests, SDK and launcher end-to-end tests in Chromium
-pnpm test:public                        # also download pinned upstream IWAs and run them unmodified
+pnpm dev                                 # launcher with hot reload; restarts when SDK sources change
+pnpm check                               # Biome lint and format, strict TypeScript
+pnpm exec playwright install chromium    # once
+pnpm test                                # unit tests and SDK and launcher end-to-end tests in Chromium
+pnpm test:public                         # also downloads pinned upstream IWAs and runs them unmodified
 ```
 
-Fixtures and examples are signed with deterministic **public** demo keys. Upstream bundles are pinned by SHA-256 in [`packages/sdk/scripts/public.ts`](packages/sdk/scripts/public.ts) and cached in `.cache/public`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions and how to add tests.
+
+## Security
+
+Iyowa is a compatibility environment, not a security boundary equivalent to ChromeOS's IWA isolation. It runs apps you choose on origins served by a local process. Only install bundles you trust: a valid signature proves which key signed the bundle, not that the publisher is trustworthy. To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+## License
+
+Iyowa is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
+
+It builds on [Scramjet](https://github.com/MercuryWorkshop/scramjet) (AGPL-3.0-only), [libcurl.js](https://github.com/ading2210/libcurl.js) and [wisp-js](https://github.com/MercuryWorkshop/wisp-js) (LGPL-3.0-or-later), [wbn and wbn-sign](https://github.com/WICG/webpackage) (W3C Software License), and [React](https://react.dev/), [ws](https://github.com/websockets/ws), [ipaddr.js](https://github.com/whitequark/ipaddr.js), [cborg](https://github.com/rvagg/cborg) and [Lucide](https://lucide.dev/). Example apps are signed with deterministic, **public** demo keys. Don't reuse them.

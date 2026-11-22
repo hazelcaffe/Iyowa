@@ -4,6 +4,23 @@
 	"private": true,
 	"type": "module",
 	"description": "Run signed Isolated Web Apps in a normal browser tab",
+	"license": "AGPL-3.0-or-later",
+	"author": "Hazelcaffe <hazel@qwq.sh>",
+	"homepage": "https://hazelcaffe.github.io/Iyowa/",
+	"bugs": "https://github.com/hazelcaffe/Iyowa/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hazelcaffe/Iyowa.git"
+	},
+	"keywords": [
+		"isolated-web-apps",
+		"iwa",
+		"direct-sockets",
+		"controlled-frame",
+		"web-bundles",
+		"scramjet",
+		"wisp"
+	],
 	"packageManager": "pnpm@12.16.1",
 	"engines": {
 		"node": ">=24"
@@ -15,7 +32,9 @@
 		"check": "biome check . && tsc --noEmit",
 		"format": "biome check --write .",
 		"test": "pnpm build && node --test packages/sdk/tests/*.test.ts && IYOWA_SKIP_BUILD=1 playwright test",
-		"test:public": "node packages/sdk/scripts/public.ts && PUBLIC_IWAS=1 pnpm test"
+		"test:public": "node packages/sdk/scripts/public.ts && PUBLIC_IWAS=1 pnpm test",
+		"screenshots": "node packages/ui/scripts/screenshots.ts",
+		"site": "pnpm --filter @iyowa/site build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.8",

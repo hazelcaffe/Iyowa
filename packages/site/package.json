@@ -1,0 +1,20 @@
+{
+	"name": "@iyowa/site",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"description": "Iyowa's GitHub Pages site: landing page and rendered documentation",
+	"license": "AGPL-3.0-or-later",
+	"scripts": {
+		"build": "node build.ts",
+		"preview": "node build.ts && node preview.ts"
+	},
+	"devDependencies": {
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"lucide-react": "1.77.0",
+		"marked": "18.2.1",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	}
+}

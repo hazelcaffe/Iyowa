@@ -1,0 +1,56 @@
+name: Bug report
+description: Something doesn't work, or an IWA behaves differently than on ChromeOS
+labels: [bug]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the report! For security issues, please use [private vulnerability reporting](https://github.com/hazelcaffe/Iyowa/security/advisories/new) instead.
+    - type: textarea
+      id: what
+      attributes:
+          label: What happened?
+          description: What you expected, and what you saw instead.
+      validations:
+          required: true
+    - type: input
+      id: app
+      attributes:
+          label: Which app?
+          description: A link to the bundle, its update manifest, or its source, if it's public. Otherwise, the features it uses.
+          placeholder: https://github.com/chromeos/iwa-sink/releases/latest/download/update.json
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          placeholder: |
+              1. Install …
+              2. Open …
+              3. Click …
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Console and socket output
+          description: Copy anything relevant from Iyowa's developer tools (Console or Sockets tab) and from the browser's own DevTools console.
+          render: text
+    - type: input
+      id: version
+      attributes:
+          label: Iyowa version or commit
+          placeholder: 0.2.0 / abc1234
+      validations:
+          required: true
+    - type: input
+      id: browser
+      attributes:
+          label: Browser and version
+          placeholder: Chrome 159, Edge 158, …
+      validations:
+          required: true
+    - type: input
+      id: environment
+      attributes:
+          label: OS and Node.js version
+          placeholder: Windows 11 + WSL 2, Node 24.11

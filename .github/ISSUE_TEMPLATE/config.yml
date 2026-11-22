@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+    - name: Report a security vulnerability
+      url: https://github.com/hazelcaffe/Iyowa/security/advisories/new
+      about: Please report security issues privately.
+    - name: Documentation
+      url: https://hazelcaffe.github.io/Iyowa/
+      about: How Iyowa works, the SDK reference and compatibility notes.

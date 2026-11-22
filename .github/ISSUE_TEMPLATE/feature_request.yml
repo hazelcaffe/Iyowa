@@ -1,0 +1,20 @@
+name: Feature or compatibility request
+description: An IWA API, manifest feature, or launcher improvement Iyowa should support
+labels: [enhancement]
+body:
+    - type: textarea
+      id: need
+      attributes:
+          label: What do you want to do?
+          description: The use case, or the app that needs it. Link to the spec or Chrome documentation if it's a platform API.
+      validations:
+          required: true
+    - type: textarea
+      id: idea
+      attributes:
+          label: Ideas for how it could work
+    - type: input
+      id: app
+      attributes:
+          label: An app that needs it
+          description: A public bundle or source link helps us test it.

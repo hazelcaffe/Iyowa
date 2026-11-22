@@ -1,0 +1,27 @@
+version: 2
+updates:
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 5
+      groups:
+          development:
+              dependency-type: development
+          production:
+              dependency-type: production
+              exclude-patterns:
+                  - "@mercuryworkshop/*"
+                  - libcurl.js
+          # The proxy stack changes behavior between releases. Update it separately and run the public IWA tests.
+          proxy:
+              patterns:
+                  - "@mercuryworkshop/*"
+                  - libcurl.js
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: monthly
+      groups:
+          actions:
+              patterns: ["*"]

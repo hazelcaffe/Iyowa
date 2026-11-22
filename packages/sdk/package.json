@@ -4,6 +4,15 @@
 	"private": true,
 	"type": "module",
 	"description": "Isolated Web App runtime: bundle verification, local host, in-app compatibility layer and browser SDK",
+	"license": "AGPL-3.0-or-later",
+	"author": "Hazelcaffe <hazel@qwq.sh>",
+	"homepage": "https://hazelcaffe.github.io/Iyowa/",
+	"bugs": "https://github.com/hazelcaffe/Iyowa/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hazelcaffe/Iyowa.git",
+		"directory": "packages/sdk"
+	},
 	"exports": {
 		".": "./src/client/index.ts",
 		"./host": "./src/host/index.ts",

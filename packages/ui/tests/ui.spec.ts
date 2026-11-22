@@ -30,7 +30,7 @@ test("install an example, answer its permission prompt, inspect it, then remove 
 
 	const example = page.getByRole("listitem").filter({ hasText: "Socket Lab" });
 	await example.getByRole("button", { name: "Install" }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Installed Socket Lab 1.0.0" })).toBeVisible();
+	await expect(page.getByRole("status").filter({ hasText: "Installed Socket Lab 1.0.1" })).toBeVisible();
 
 	// Installing opens the app in the shell.
 	const toolbar = page.locator(".app-toolbar");

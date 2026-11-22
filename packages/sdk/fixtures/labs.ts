@@ -2,8 +2,11 @@ import { signApp, testKey } from "./sign.ts";
 
 // Example IWAs shipped with Iyowa. They are signed with public demo keys.
 
-const ICON = (hue: number, glyph: string) =>
-	`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="hsl(${hue} 70% 45%)"/><text x="48" y="63" font-family="system-ui,sans-serif" font-size="44" font-weight="700" text-anchor="middle" fill="#fff">${glyph}</text></svg>`;
+// Icons are plain shapes: text glyphs depend on the fonts installed where the launcher runs.
+const ICON = (hue: number, shapes: string) =>
+	`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="hsl(${hue} 70% 45%)"/><g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">${shapes}</g></svg>`;
+const FRAMES = '<rect x="20" y="24" width="44" height="36" rx="6"/><path d="M38 72h32a6 6 0 0 0 6-6V42"/>';
+const ARROWS = '<path d="M24 36h46M58 24l12 12-12 12M72 60H26M38 48 26 60l12 12"/>';
 
 const BASE_CSS = `
 :root { color-scheme: light dark; font: 14px/1.45 system-ui, sans-serif; --line: color-mix(in srgb, CanvasText 15%, transparent); }
@@ -13,7 +16,8 @@ header { display: flex; gap: 6px; align-items: center; padding: 8px; border-bott
 button, input, select { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid var(--line); background: Canvas; color: CanvasText; }
 button:hover:not(:disabled) { background: color-mix(in srgb, CanvasText 7%, Canvas); }
 button[aria-pressed="true"] { background: Highlight; color: HighlightText; }
-input { flex: 1; min-width: 12ch; }
+input:not([type="checkbox"]) { flex: 1; min-width: 12ch; }
+label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .log { font: 12px ui-monospace, monospace; white-space: pre-wrap; overflow: auto; margin: 0; padding: 8px; }
 .muted { color: GrayText; }
 `;
@@ -25,14 +29,14 @@ export function frameLab() {
 			short_name: "Frame Lab",
 			description:
 				"A small browser built on <controlledframe>: navigation, script and CSS injection, request blocking and context menus.",
-			version: "1.0.0",
+			version: "1.0.1",
 			start_url: "/",
 			display: "standalone",
 			icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
 			permissions_policy: { "cross-origin-isolated": ["self"], "controlled-frame": ["self"] },
 		},
 		{
-			"/icon.svg": ICON(205, "⧉"),
+			"/icon.svg": ICON(205, FRAMES),
 			"/": `<!doctype html><meta charset="utf-8"><title>Controlled Frame Lab</title><link rel="stylesheet" href="/lab.css">
 <header>
 	<button id="back" title="Back">←</button><button id="forward" title="Forward">→</button><button id="reload" title="Reload">⟳</button>
@@ -114,7 +118,7 @@ export function socketLab() {
 			name: "Socket Lab",
 			description:
 				"Direct Sockets playground: raw TCP clients, a TCP server and UDP (DNS) over the runtime's relay.",
-			version: "1.0.0",
+			version: "1.0.1",
 			start_url: "/",
 			display: "standalone",
 			icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
@@ -125,7 +129,7 @@ export function socketLab() {
 			},
 		},
 		{
-			"/icon.svg": ICON(150, "⇄"),
+			"/icon.svg": ICON(150, ARROWS),
 			"/": `<!doctype html><meta charset="utf-8"><title>Socket Lab</title><link rel="stylesheet" href="/lab.css">
 <header>
 	<strong>TCP</strong>

@@ -4,6 +4,15 @@
 	"private": true,
 	"type": "module",
 	"description": "Iyowa launcher: library, app windows, permissions and developer tools built on @iyowa/sdk",
+	"license": "AGPL-3.0-or-later",
+	"author": "Hazelcaffe <hazel@qwq.sh>",
+	"homepage": "https://hazelcaffe.github.io/Iyowa/",
+	"bugs": "https://github.com/hazelcaffe/Iyowa/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hazelcaffe/Iyowa.git",
+		"directory": "packages/ui"
+	},
 	"scripts": {
 		"dev": "node --watch-path=../sdk/src --watch-path=../sdk/fixtures --watch-path=./serve.ts serve.ts --dev",
 		"build": "vite build",
