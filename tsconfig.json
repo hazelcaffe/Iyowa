@@ -4,12 +4,22 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"strict": true,
-		"allowImportingTsExtensions": true,
 		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"erasableSyntaxOnly": true,
+		"jsx": "react-jsx",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"skipLibCheck": true,
 		"types": ["node"]
 	},
-	"include": ["**/*.ts"],
-	"exclude": ["dist", "node_modules", ".cache"]
+	"include": [
+		"packages/*/src/**/*",
+		"packages/*/scripts/**/*",
+		"packages/*/fixtures/**/*",
+		"packages/*/tests/**/*",
+		"packages/*/*.ts",
+		"*.ts"
+	],
+	"exclude": ["**/dist", "**/node_modules", ".cache"]
 }

@@ -1,0 +1,32 @@
+{
+	"name": "@iyowa/sdk",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"description": "Isolated Web App runtime: bundle verification, local host, in-app compatibility layer and browser SDK",
+	"exports": {
+		".": "./src/client/index.ts",
+		"./host": "./src/host/index.ts",
+		"./bundle": "./src/bundle/index.ts",
+		"./build": "./scripts/build.ts"
+	},
+	"scripts": {
+		"build": "node scripts/build.ts"
+	},
+	"dependencies": {
+		"@mercuryworkshop/proxy-transports": "1.0.2",
+		"@mercuryworkshop/scramjet": "2.1.0",
+		"@mercuryworkshop/wisp-js": "0.5.3",
+		"cborg": "4.5.8",
+		"ipaddr.js": "2.3.0",
+		"libcurl.js": "0.7.5",
+		"wbn": "0.0.10",
+		"wbn-sign": "0.3.3",
+		"ws": "8.23.0"
+	},
+	"devDependencies": {
+		"@types/ws": "8.18.1",
+		"esbuild": "0.28.2",
+		"wbn-sign-v1": "npm:wbn-sign@0.1.3"
+	}
+}

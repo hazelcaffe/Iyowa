@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Iyowa SDK harness</title>
+		<style>
+			html, body { margin: 0; height: 100%; }
+			main { position: fixed; inset: 0; }
+			main iframe { width: 100%; height: 100%; border: 0; }
+		</style>
+	</head>
+	<body>
+		<main></main>
+		<script type="module">
+			// Minimal SDK consumer for automated tests: no launcher UI involved.
+			import { IwaRuntime } from "/sdk.js";
+
+			const runtime = new IwaRuntime();
+			const main = document.querySelector("main");
+			window.iyowa = {
+				runtime,
+				prompts: [],
+				answer: "denied",
+				async launch(id, path) {
+					const app = (await runtime.list()).find((a) => a.id === id);
+					const session = runtime.launch(app, main, path ? { path } : {});
+					session.addEventListener("permissionrequest", (e) => {
+						window.iyowa.prompts.push({ name: e.name, reason: e.reason });
+						e.respond(window.iyowa.answer);
+					});
+					window.iyowa.session = session;
+					await session.ready;
+					return app.appOrigin;
+				},
+			};
+			document.title = "ready";
+		</script>
+	</body>
+</html>
