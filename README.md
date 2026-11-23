@@ -1,106 +1,58 @@
-<h1 align="center">Iyowa</h1>
+# Iyowa
 
-<p align="center">
-  <strong>Run signed Isolated Web Apps in an ordinary Chromium tab.</strong><br>
-  Direct Sockets, Controlled Frame and screen capture without ChromeOS, enterprise policy or flags.
-</p>
+[![CI](https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml/badge.svg)](https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml)
 
-<p align="center">
-  <a href="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml"><img src="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://hazelcaffe.github.io/Iyowa/"><img src="https://img.shields.io/badge/docs-hazelcaffe.github.io%2FIyowa-228be6" alt="Documentation"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue" alt="License: AGPL-3.0-or-later"></a>
-</p>
+Run signed [Isolated Web Apps](https://github.com/WICG/isolated-web-apps) (`.swbn`) in a normal Chromium tab. Iyowa verifies the bundle, serves the app from its own `localhost` origin, and emulates the IWA APIs: Direct Sockets, Controlled Frame, `getAllScreensMedia`, unframed display mode, `launchQueue` and protocol handlers. Upstream apps such as the [ChromeOS Kitchen Sink](https://github.com/chromeos/iwa-sink) run unmodified.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/app-dark.png">
-  <img src="docs/assets/app.png" alt="Iyowa running three Isolated Web Apps; Kitchen Sink's controlled frame shows Google inside the app">
-</picture>
+Iyowa is a compatibility environment, not ChromeOS's IWA security model. Only install bundles you trust. Known differences are listed in [docs/compatibility.md](docs/compatibility.md).
 
-[Isolated Web Apps](https://github.com/WICG/isolated-web-apps) are signed bundles that Chrome installs and runs with powerful APIs, such as raw TCP and UDP sockets and a `<controlledframe>` that can embed and script any website. Running one usually requires a managed ChromeOS device or developer flags. Iyowa verifies the bundle, serves it from its own origin on `localhost`, and emulates the IWA platform, so apps like the [ChromeOS Kitchen Sink](https://github.com/chromeos/iwa-sink) run **unmodified** in a normal tab.
+## Run
 
-## Features
-
-- **Verified installs.** Drop a `.swbn`, choose a file, or paste a bundle or `update.json` URL. Iyowa checks the signature (Ed25519 or P-256, current and legacy formats), and updates must keep the signing key.
-- **Direct Sockets.** `TCPSocket`, `TCPServerSocket` and `UDPSocket` with streams, BYOB reads and multicast, over a policy-checked [Wisp](https://github.com/MercuryWorkshop/wisp-protocol) relay or real OS ports.
-- **Controlled Frame.** `<controlledframe>` runs any site through a per-partition [Scramjet](https://github.com/MercuryWorkshop/scramjet) proxy with in-browser TLS ([libcurl.js](https://github.com/ading2210/libcurl.js)). It supports script and CSS injection, request interception, context menus, `newwindow`, cookies and WebSockets.
-- **The rest of the platform.** `getAllScreensMedia()`, `display-mode: unframed`, in-tab popups, `launchQueue`, protocol handlers, and the app's own service workers.
-- **One permission to think about.** Public internet access follows the manifest. Reaching this computer or your LAN asks first, and if you block it, the app's sockets stay inside the tab.
-- **A focused launcher.** Pick an app and press Run; running apps get tabs. A bottom panel shows logs from the runtime and every app, or live sockets with their routes and traffic. Settings covers each app's permissions, identity, updates and removal.
-- **An SDK.** The launcher is a client of `@iyowa/sdk`. Use the same API to embed IWAs in your own UI.
-
-| ![Socket Lab with the Sockets panel open](docs/assets/sockets.png) | ![A local network request shown under the toolbar](docs/assets/permission-prompt.png) |
-| :----------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
-|         Raw TCP and UDP from an app, in the Sockets panel          |                       Reaching your computer or LAN asks first                        |
-
-## Quick start
-
-Requires [Node.js](https://nodejs.org/) 24 or newer and a current Chromium-based browser (Chrome, Edge, Brave, and so on).
+Requires Node.js 24 or newer and pnpm (`corepack enable`).
 
 ```sh
-git clone https://github.com/hazelcaffe/Iyowa.git
-cd Iyowa
-corepack enable        # provides the pnpm version pinned in package.json
 pnpm install
-pnpm dev               # open http://localhost:4178
+pnpm dev        # http://localhost:4178
 ```
 
-Choose **Try an example** to install Socket Lab or Controlled Frame Lab, or use **Install → Public apps** for the Kitchen Sink and other public IWAs. Drop a `.swbn` anywhere to install it. For a production build, run `pnpm build && pnpm start`.
+`pnpm build && pnpm start` serves the production build. `PORT` sets the port; keep it stable, because each app's browser storage belongs to its origin. `IYOWA_DATA` sets the data directory (default `./.iyowa`). The server only listens on `127.0.0.1`.
 
-| Variable     | Default    | Meaning                                                                          |
-| ------------ | ---------- | -------------------------------------------------------------------------------- |
-| `PORT`       | `4178`     | Launcher port. Keep it stable: each app's browser storage belongs to its origin. |
-| `IYOWA_DATA` | `./.iyowa` | Installed bundles and per-app permissions.                                       |
+Install an app from **Install** (a `.swbn` file, a bundle or `update.json` URL, an example, or a public app), or drop a `.swbn` on the page. Choose it at the top and press **Run**; **Stop** closes it. Running apps get tabs. **Logs** (Ctrl+\`) shows runtime and app output, **Sockets** shows the active app's connections, and **Settings** has the app's permissions, details, updates and removal.
 
-The server listens on `127.0.0.1` only. Chromium resolves `*.localhost` itself, so no hosts-file setup is needed.
+## Permissions
 
-## Documentation
+The manifest's `permissions_policy` decides which APIs an app gets. Iyowa only asks about local network access:
 
-- [How Iyowa works](docs/architecture.md): origins, the in-app runtime, socket routes and the controlled-frame proxy
-- [SDK reference](docs/sdk.md): the browser API (`IwaRuntime`, `IwaSession`) and the Node host
-- [Compatibility](docs/compatibility.md): what is tested, against which apps, and where behavior differs from ChromeOS
+- `direct-sockets`: connections to public addresses. Loopback stays on a network inside the app.
+- `direct-sockets-private`: with your permission, connections to this computer and the LAN, and real OS listeners.
+- `controlled-frame`: frames load public sites. LAN sites need your permission.
 
-These docs are also published at **[hazelcaffe.github.io/Iyowa](https://hazelcaffe.github.io/Iyowa/)**.
+The relay checks the resolved address before it connects. Answers are saved per app and can be changed in **Settings**.
 
-## Permission model
+## How it works
 
-The manifest's `permissions_policy` decides what an app may use, as it does for an installed IWA in Chrome. Iyowa asks you about one thing, **local network access**:
+- Controlled frames run through a per-partition [Scramjet](https://github.com/MercuryWorkshop/scramjet) v2 service worker. Pages are fetched with [libcurl.js](https://github.com/ading2210/libcurl.js) over [Wisp](https://github.com/MercuryWorkshop/wisp-protocol), so TLS terminates in the browser.
+- Outgoing TCP and UDP use Wisp, loopback inside an app uses a SharedWorker, and OS listeners use a small bind protocol on the host.
 
-| An app that declares                        | Can                                                                   | And, if you allow local network access                        |
-| ------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `direct-sockets`                            | connect to public internet addresses, and use loopback inside the app | n/a                                                           |
-| `direct-sockets` + `direct-sockets-private` | the same                                                              | reach this computer and your LAN, and listen on real OS ports |
-| `controlled-frame`                          | show public websites in frames                                        | also show LAN and loopback sites                              |
+More in [docs/architecture.md](docs/architecture.md). The SDK is documented in [docs/sdk.md](docs/sdk.md).
 
-Checks happen in the relay, at the address it actually connects to after DNS resolution. Answers are saved per app and can be changed in **Settings**.
+## Layout
 
-## Project layout
+- `packages/sdk` (`@iyowa/sdk`): bundle verification, the Node host, the in-app runtime, the controlled-frame proxy and the browser SDK.
+- `packages/ui` (`@iyowa/ui`): the launcher, a React and Mantine app that only uses the SDK.
+- `packages/site`: the docs site at https://hazelcaffe.github.io/Iyowa/.
 
-```
-packages/
-  sdk/    @iyowa/sdk: bundle verification, host, in-app runtime, frame proxy, browser SDK
-  ui/     @iyowa/ui: the launcher (React and Mantine)
-  site/   the GitHub Pages site, generated from docs/
-docs/     documentation and screenshots
-```
-
-## Development
+## Tests
 
 ```sh
-pnpm dev                                 # launcher with hot reload; restarts when SDK sources change
-pnpm check                               # Biome lint and format, strict TypeScript
-pnpm exec playwright install chromium    # once
-pnpm test                                # unit tests and SDK and launcher end-to-end tests in Chromium
-pnpm test:public                         # also downloads pinned upstream IWAs and runs them unmodified
+pnpm check                              # Biome and TypeScript
+pnpm exec playwright install chromium   # once
+pnpm test                               # unit and Chromium end-to-end tests
+pnpm test:public                        # also runs pinned upstream IWAs (needs network)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions and how to add tests.
-
-## Security
-
-Iyowa is a compatibility environment, not a security boundary equivalent to ChromeOS's IWA isolation. It runs apps you choose on origins served by a local process. Only install bundles you trust: a valid signature proves which key signed the bundle, not that the publisher is trustworthy. To report a vulnerability, see [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Iyowa is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
-
-It builds on [Scramjet](https://github.com/MercuryWorkshop/scramjet) (AGPL-3.0-only), [libcurl.js](https://github.com/ading2210/libcurl.js) and [wisp-js](https://github.com/MercuryWorkshop/wisp-js) (LGPL-3.0-or-later), [wbn and wbn-sign](https://github.com/WICG/webpackage) (W3C Software License), and [React](https://react.dev/), [ws](https://github.com/websockets/ws), [ipaddr.js](https://github.com/whitequark/ipaddr.js), [cborg](https://github.com/rvagg/cborg) and [Lucide](https://lucide.dev/). Example apps are signed with deterministic, **public** demo keys. Don't reuse them.
+[AGPL-3.0-or-later](LICENSE). Scramjet is AGPL-3.0-only; libcurl.js and wisp-js are LGPL-3.0-or-later. The example apps are signed with public demo keys.
