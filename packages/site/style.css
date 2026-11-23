@@ -1,40 +1,50 @@
 :root {
 	color-scheme: light dark;
-	--bg: #f7f7fa;
-	--surface: #ffffff;
-	--surface-2: #f0f1f5;
-	--text: #17191f;
-	--subtle: #5f6674;
-	--line: rgb(20 24 33 / 0.1);
-	--line-strong: rgb(20 24 33 / 0.18);
-	--accent: #6a5cf6;
+	/* Mantine's default palette, as in the launcher. */
+	--bg: #ffffff;
+	--surface: #f8f9fa;
+	--surface-2: #f1f3f5;
+	--text: #212529;
+	--subtle: #868e96;
+	--line: #dee2e6;
+	--line-strong: #ced4da;
+	--accent: #228be6;
+	--accent-fill: #228be6;
 	--accent-text: #ffffff;
-	--accent-soft: rgb(106 92 246 / 0.1);
-	--shadow: 0 2px 6px rgb(0 0 0 / 0.05), 0 24px 60px rgb(40 30 120 / 0.14);
-	--mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
+	--accent-soft: rgb(34 139 230 / 0.1);
+	--shadow: 0 1px 3px rgb(0 0 0 / 0.05), 0 20px 40px rgb(0 0 0 / 0.08);
+	--mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
 	font:
-		16px / 1.6 system-ui,
+		16px / 1.6 "Inter Variable",
+		system-ui,
 		-apple-system,
 		"Segoe UI",
-		Roboto,
 		sans-serif;
 	color: var(--text);
 	background: var(--bg);
 }
 @media (prefers-color-scheme: dark) {
 	:root {
-		--bg: #0f1115;
-		--surface: #171a21;
-		--surface-2: #1f232c;
-		--text: #e8eaef;
-		--subtle: #9aa1ae;
-		--line: rgb(255 255 255 / 0.08);
-		--line-strong: rgb(255 255 255 / 0.16);
-		--accent: #8b7fff;
-		--accent-text: #0d0b1f;
-		--accent-soft: rgb(139 127 255 / 0.14);
-		--shadow: 0 2px 6px rgb(0 0 0 / 0.4), 0 24px 60px rgb(0 0 0 / 0.5);
+		--bg: #242424;
+		--surface: #2e2e2e;
+		--surface-2: #3b3b3b;
+		--text: #c9c9c9;
+		--subtle: #828282;
+		--line: #424242;
+		--line-strong: #4f4f4f;
+		--accent: #4dabf7;
+		--accent-fill: #1971c2;
+		--accent-text: #ffffff;
+		--accent-soft: rgb(77 171 247 / 0.12);
+		--shadow: 0 1px 3px rgb(0 0 0 / 0.3), 0 20px 40px rgb(0 0 0 / 0.35);
 	}
+}
+@font-face {
+	font-family: "Inter Variable";
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url("assets/inter-latin-wght-normal.woff2") format("woff2-variations");
 }
 
 * {
@@ -94,12 +104,10 @@ code {
 	padding: 12px 24px;
 }
 .brand {
-	display: flex;
-	align-items: center;
-	gap: 10px;
 	color: var(--text);
 	font-weight: 700;
 	font-size: 18px;
+	letter-spacing: -0.02em;
 	text-decoration: none;
 }
 .links {
@@ -185,12 +193,12 @@ main > section {
 	background: var(--surface-2);
 }
 .button.primary {
-	background: var(--accent);
+	background: var(--accent-fill);
 	border-color: transparent;
 	color: var(--accent-text);
 }
 .button.primary:hover {
-	background: color-mix(in srgb, var(--accent) 88%, black);
+	background: color-mix(in srgb, var(--accent-fill) 88%, black);
 }
 .shot {
 	display: block;

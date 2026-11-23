@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Launcher redesigned** to match [Neutron](https://github.com/hazelcaffe/Neutron). It uses Mantine and Inter, with a compact toolbar: app picker, Run and Stop, a status badge, and Install, Logs, Sockets and Settings buttons. Running apps get tabs. Local network requests appear as an inline bar under the toolbar. A bottom panel shows logs from the runtime and every app, or live sockets. App details, permissions, updates and removal are in Settings, which also has an appearance option.
+- Removed the placeholder logo; Iyowa uses a plain wordmark.
+
 ## 0.2.0 (2026-11-22)
 
 First public release.

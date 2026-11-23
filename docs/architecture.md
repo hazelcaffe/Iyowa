@@ -63,6 +63,6 @@ Bundled pages loaded in a frame use the stand-in origin `https://bundle.invalid`
 
 ## The SDK and launcher
 
-[`src/client`](../packages/sdk/src/client/index.ts) is the browser SDK. `IwaRuntime` manages the library through the host's same-origin API, and `IwaSession` owns an app frame, routes guest messages by origin, and turns them into events. The launcher in [`packages/ui`](../packages/ui) is a React app built only on that SDK. [`createHost()`](../packages/sdk/src/host/index.ts) serves any UI from a static directory or a connect-style handler, such as Vite middleware during development.
+[`src/client`](../packages/sdk/src/client/index.ts) is the browser SDK. `IwaRuntime` manages the library through the host's same-origin API, and `IwaSession` owns an app frame, routes guest messages by origin, and turns them into events. The launcher in [`packages/ui`](../packages/ui) is a React and [Mantine](https://mantine.dev/) app built only on that SDK. [`createHost()`](../packages/sdk/src/host/index.ts) serves any UI from a static directory or a connect-style handler, such as Vite middleware during development.
 
 All runtime pieces are compiled by [`scripts/build.ts`](../packages/sdk/scripts/build.ts) with esbuild into `packages/sdk/dist`. The host serves them from the reserved `/.iyowa/` path on each origin.

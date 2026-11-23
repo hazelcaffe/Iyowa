@@ -127,17 +127,16 @@ function layout(options: {
 <meta name="description" content="${esc(description)}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:image" content="${SITE}assets/library.png">
+<meta property="og:image" content="${SITE}assets/app.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="${prefix}assets/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="${prefix}style.css">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
 	<nav class="bar" aria-label="Site">
-		<a class="brand" href="${prefix}"><img src="${prefix}assets/logo.svg" alt="" width="26" height="26">Iyowa</a>
+		<a class="brand" href="${prefix}">iyowa</a>
 		<div class="links">${nav}<a class="github" href="${REPO}" aria-label="Iyowa on GitHub">${github(18)}<span>GitHub</span></a></div>
 	</nav>
 </header>
@@ -173,8 +172,8 @@ function landing(prefix: string) {
 	<p class="lede">Iyowa verifies signed <code>.swbn</code> bundles and runs them with Direct Sockets, Controlled Frame and screen capture. You don't need ChromeOS, enterprise policy or browser flags. Upstream apps like the ChromeOS Kitchen Sink run unmodified.</p>
 	<p class="actions"><a class="button primary" href="#start">Get started</a><a class="button" href="${REPO}">${github(17)} View on GitHub</a></p>
 	<picture class="shot hero-shot">
-		<source srcset="${prefix}assets/library-dark.png" media="(prefers-color-scheme: dark)">
-		<img src="${prefix}assets/library.png" alt="The Iyowa library with five installed Isolated Web Apps" width="1440" height="900">
+		<source srcset="${prefix}assets/app-dark.png" media="(prefers-color-scheme: dark)">
+		<img src="${prefix}assets/app.png" alt="Iyowa running three Isolated Web Apps; Kitchen Sink's controlled frame shows Google inside the app" width="1440" height="900">
 	</picture>
 </section>
 
@@ -185,7 +184,7 @@ function landing(prefix: string) {
 		${feature(Cable, "Direct Sockets", "<code>TCPSocket</code>, <code>TCPServerSocket</code> and <code>UDPSocket</code> with streams, BYOB reads and multicast, over a policy-checked Wisp relay or real OS ports.")}
 		${feature(Frame, "Controlled Frame", "<code>&lt;controlledframe&gt;</code> runs any site through a per-partition Scramjet proxy with in-browser TLS. It supports injection, interception, context menus and new windows.")}
 		${feature(MonitorUp, "Screens and windows", "<code>getAllScreensMedia()</code>, <code>display-mode: unframed</code>, in-tab popups, <code>launchQueue</code> and protocol handlers.")}
-		${feature(PanelBottom, "Developer tools", "Each running app has a console, live socket inspection, a permissions editor and a manifest viewer.")}
+		${feature(PanelBottom, "Logs and sockets", "A bottom panel shows the runtime's events and every app's console, or each live socket with its route and traffic.")}
 		${feature(Code, "An SDK", "The launcher is just a client of <code>@iyowa/sdk</code>. Embed IWAs in your own UI with <code>IwaRuntime</code> and <code>IwaSession</code>.")}
 	</ul>
 </section>
@@ -193,9 +192,9 @@ function landing(prefix: string) {
 <section class="band">
 	<h2>See it run</h2>
 	<div class="gallery">
-		<figure><img class="shot" src="${prefix}assets/controlled-frame.png" alt="Kitchen Sink's controlled frame showing Google inside the app" loading="lazy" width="1440" height="900"><figcaption>Kitchen Sink drives a live site in its controlled frame.</figcaption></figure>
-		<figure><img class="shot" src="${prefix}assets/devtools.png" alt="Socket Lab with the developer tools' socket table" loading="lazy" width="1440" height="900"><figcaption>Raw TCP and UDP, inspected in developer tools.</figcaption></figure>
-		<figure><img class="shot" src="${prefix}assets/permission-prompt.png" alt="A local network permission prompt" loading="lazy" width="1440" height="900"><figcaption>Reaching your computer or LAN asks first.</figcaption></figure>
+		<figure><img class="shot" src="${prefix}assets/sockets.png" alt="Socket Lab with the Sockets panel open" loading="lazy" width="1440" height="900"><figcaption>Raw TCP and UDP from an app, in the Sockets panel.</figcaption></figure>
+		<figure><img class="shot" src="${prefix}assets/logs.png" alt="The Logs panel with runtime events and socket activity" loading="lazy" width="1440" height="900"><figcaption>Runtime events and every app's output in one log.</figcaption></figure>
+		<figure><img class="shot" src="${prefix}assets/permission-prompt.png" alt="A local network request shown under the toolbar" loading="lazy" width="1440" height="900"><figcaption>Reaching your computer or LAN asks first.</figcaption></figure>
 	</div>
 </section>
 
@@ -221,7 +220,7 @@ function landing(prefix: string) {
 	<h2>Get started</h2>
 	<p>You need Node.js 24 or newer and a current Chromium-based browser.</p>
 	${quickstart}
-	<p>Then install <strong>Socket Lab</strong> or <strong>Controlled Frame Lab</strong> from <em>Try an app</em>, or paste the Kitchen Sink's update URL. The <a href="${prefix}sdk/">SDK reference</a> shows how to build your own launcher.</p>
+	<p>Then choose <strong>Try an example</strong>, or use <strong>Install → Public apps</strong> for the Kitchen Sink. The <a href="${prefix}sdk/">SDK reference</a> shows how to build your own launcher.</p>
 </section>
 `;
 }
@@ -231,6 +230,10 @@ await mkdir(`${out}assets`, { recursive: true });
 for (const file of await readdir(`${root}docs/assets`))
 	await copyFile(`${root}docs/assets/${file}`, `${out}assets/${file}`);
 await copyFile(path("./style.css"), `${out}style.css`);
+await copyFile(
+	path("./node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"),
+	`${out}assets/inter-latin-wght-normal.woff2`,
+);
 await writeFile(`${out}.nojekyll`, "");
 
 await writeFile(

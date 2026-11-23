@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/logo.svg" alt="" width="72" height="72">
-</p>
-
 <h1 align="center">Iyowa</h1>
 
 <p align="center">
@@ -11,11 +7,14 @@
 
 <p align="center">
   <a href="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml"><img src="https://github.com/hazelcaffe/Iyowa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://hazelcaffe.github.io/Iyowa/"><img src="https://img.shields.io/badge/docs-hazelcaffe.github.io%2FIyowa-6a5cf6" alt="Documentation"></a>
+  <a href="https://hazelcaffe.github.io/Iyowa/"><img src="https://img.shields.io/badge/docs-hazelcaffe.github.io%2FIyowa-228be6" alt="Documentation"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue" alt="License: AGPL-3.0-or-later"></a>
 </p>
 
-![The Iyowa library with installed Isolated Web Apps](docs/assets/library.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/app-dark.png">
+  <img src="docs/assets/app.png" alt="Iyowa running three Isolated Web Apps; Kitchen Sink's controlled frame shows Google inside the app">
+</picture>
 
 [Isolated Web Apps](https://github.com/WICG/isolated-web-apps) are signed bundles that Chrome installs and runs with powerful APIs, such as raw TCP and UDP sockets and a `<controlledframe>` that can embed and script any website. Running one usually requires a managed ChromeOS device or developer flags. Iyowa verifies the bundle, serves it from its own origin on `localhost`, and emulates the IWA platform, so apps like the [ChromeOS Kitchen Sink](https://github.com/chromeos/iwa-sink) run **unmodified** in a normal tab.
 
@@ -26,12 +25,12 @@
 - **Controlled Frame.** `<controlledframe>` runs any site through a per-partition [Scramjet](https://github.com/MercuryWorkshop/scramjet) proxy with in-browser TLS ([libcurl.js](https://github.com/ading2210/libcurl.js)). It supports script and CSS injection, request interception, context menus, `newwindow`, cookies and WebSockets.
 - **The rest of the platform.** `getAllScreensMedia()`, `display-mode: unframed`, in-tab popups, `launchQueue`, protocol handlers, and the app's own service workers.
 - **One permission to think about.** Public internet access follows the manifest. Reaching this computer or your LAN asks first, and if you block it, the app's sockets stay inside the tab.
-- **A launcher with developer tools.** A library, multiple running apps, a console, live socket inspection, a permissions editor, and a manifest viewer.
+- **A focused launcher.** Pick an app and press Run; running apps get tabs. A bottom panel shows logs from the runtime and every app, or live sockets with their routes and traffic. Settings covers each app's permissions, identity, updates and removal.
 - **An SDK.** The launcher is a client of `@iyowa/sdk`. Use the same API to embed IWAs in your own UI.
 
-| ![Kitchen Sink's controlled frame showing Google inside the app](docs/assets/controlled-frame.png) | ![Socket Lab with the developer tools' socket table](docs/assets/devtools.png) |
-| :------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------: |
-|                      Kitchen Sink drives a live site in its controlled frame                       |                 Raw TCP and UDP, inspected in developer tools                  |
+| ![Socket Lab with the Sockets panel open](docs/assets/sockets.png) | ![A local network request shown under the toolbar](docs/assets/permission-prompt.png) |
+| :----------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
+|         Raw TCP and UDP from an app, in the Sockets panel          |                       Reaching your computer or LAN asks first                        |
 
 ## Quick start
 
@@ -45,7 +44,7 @@ pnpm install
 pnpm dev               # open http://localhost:4178
 ```
 
-Install **Socket Lab** or **Controlled Frame Lab** from **Try an app**, or install a public IWA such as the Kitchen Sink from its update URL. For a production build, run `pnpm build && pnpm start`.
+Choose **Try an example** to install Socket Lab or Controlled Frame Lab, or use **Install → Public apps** for the Kitchen Sink and other public IWAs. Drop a `.swbn` anywhere to install it. For a production build, run `pnpm build && pnpm start`.
 
 | Variable     | Default    | Meaning                                                                          |
 | ------------ | ---------- | -------------------------------------------------------------------------------- |
@@ -72,14 +71,14 @@ The manifest's `permissions_policy` decides what an app may use, as it does for 
 | `direct-sockets` + `direct-sockets-private` | the same                                                              | reach this computer and your LAN, and listen on real OS ports |
 | `controlled-frame`                          | show public websites in frames                                        | also show LAN and loopback sites                              |
 
-Checks happen in the relay, at the address it actually connects to after DNS resolution. Answers are saved per app and can be changed in **Developer tools → Permissions** or **App info**.
+Checks happen in the relay, at the address it actually connects to after DNS resolution. Answers are saved per app and can be changed in **Settings**.
 
 ## Project layout
 
 ```
 packages/
   sdk/    @iyowa/sdk: bundle verification, host, in-app runtime, frame proxy, browser SDK
-  ui/     @iyowa/ui: the React launcher
+  ui/     @iyowa/ui: the launcher (React and Mantine)
   site/   the GitHub Pages site, generated from docs/
 docs/     documentation and screenshots
 ```

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHost, type IyowaHost } from "@iyowa/sdk/host";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 // The production launcher (packages/ui/dist) on a fresh, empty library.
 let host: IyowaHost;
@@ -21,67 +21,87 @@ test.afterEach(async () => {
 	await rm(dir, { recursive: true, force: true });
 });
 
-test("install an example, answer its permission prompt, inspect it, then remove it", async ({ page }) => {
+const installExample = async (page: Page, name: string) => {
+	await page.getByRole("button", { name: "Install", exact: true }).click();
+	await page.getByRole("menuitem", { name }).click();
+};
+const status = (page: Page) => page.locator("#runtime-state");
+const visibleApp = (page: Page) => page.frameLocator(".surface:not([hidden]) iframe");
+
+test("install and run an example, answer its permission request, inspect logs and sockets, then remove it", async ({
+	page,
+}) => {
 	const errors: string[] = [];
 	page.on("pageerror", (e) => errors.push(e.message));
 	await page.goto(host.origin);
-	await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
-	await expect(page.getByText("No apps yet")).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Run an Isolated Web App" })).toBeVisible();
+	await expect(status(page)).toHaveText("Runtime ready");
+	await expect(page.getByRole("combobox", { name: "App" })).toBeDisabled();
 
-	const example = page.getByRole("listitem").filter({ hasText: "Socket Lab" });
-	await example.getByRole("button", { name: "Install" }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Installed Socket Lab 1.0.1" })).toBeVisible();
-
-	// Installing opens the app in the shell.
-	const toolbar = page.locator(".app-toolbar");
-	await expect(toolbar).toContainText("Socket Lab");
-	await expect(page).toHaveURL(/#\/app\/[a-z2-7]+$/);
-	const app = page.frameLocator(".surface iframe");
+	await installExample(page, "Socket Lab");
+	await expect(page.getByRole("alert").filter({ hasText: "Socket Lab 1.0.1" })).toBeVisible();
+	await expect(status(page)).toHaveText("App running");
+	await expect(page.getByRole("combobox", { name: "App" })).toHaveValue(/^[a-z2-7]+$/);
+	await expect(page.getByRole("heading", { name: "Run an Isolated Web App" })).toBeHidden();
 
 	// A listener asks for local network access; blocking keeps it inside the app.
+	const app = visibleApp(page);
 	await app.getByRole("button", { name: "Listen on 127.0.0.1" }).click();
-	const prompt = page.getByRole("alertdialog");
-	await expect(prompt).toContainText("Socket Lab wants to access devices on your local network");
-	await expect(page.getByRole("navigation").locator(".dot.attention")).toBeVisible();
-	await prompt.getByRole("button", { name: "Block" }).click();
-	await expect(prompt).toBeHidden();
+	const request = page.locator("#permission-request");
+	await expect(request).toContainText(
+		"Socket Lab wants to access your local network to accept connections on 127.0.0.1",
+	);
+	await request.getByRole("button", { name: "Block" }).click();
+	await expect(request).toBeHidden();
 	await expect(app.locator("#server")).toContainText("Echoing on 127.0.0.1:");
 
-	// Developer tools: socket table and console.
-	await page.getByRole("button", { name: "Developer tools" }).click();
-	const devtools = page.getByRole("region", { name: "Developer tools" });
-	await devtools.getByRole("tab", { name: /Sockets/ }).click();
-	const row = devtools.getByRole("row").filter({ hasText: "TCP server" });
+	// Sockets panel: the listener stayed in-app.
+	await page.getByRole("button", { name: /^Sockets/ }).click();
+	const sockets = page.getByRole("region", { name: "Sockets" });
+	const row = sockets.getByRole("row").filter({ hasText: "TCP server" });
 	await expect(row).toContainText("in-app");
 	await expect(row).toContainText("open");
-	await devtools.getByRole("tab", { name: /Console/ }).click();
+
+	// Logs panel: runtime events, the app's console and socket activity.
 	await page
 		.frames()
-		.find((f) => f.url().includes(".localhost:") && !f.url().startsWith(host.origin))
-		?.evaluate(() => console.warn("hello devtools"));
-	await expect(devtools.getByRole("listitem").filter({ hasText: "hello devtools" })).toHaveClass(/warn/);
-	await devtools.getByRole("tab", { name: /Permissions/ }).click();
-	await expect(devtools.getByRole("combobox", { name: "Local network access" })).toHaveValue("denied");
+		.find((f) => /^http:\/\/[a-z2-7]+\.localhost:/.test(f.url()))
+		?.evaluate(() => console.warn("hello logs"));
+	await page.getByRole("button", { name: /^Logs/ }).click();
+	const log = page.getByRole("log", { name: "Runtime and app output" });
+	await expect(log.locator(".log.warn")).toContainText("hello logs");
+	await expect(log).toContainText("Blocked local network access for Socket Lab");
+	await expect(log).toContainText("TCP server 127.0.0.1:");
+	await page.keyboard.press("Control+`");
+	await expect(log).toBeHidden();
 
-	// Reloading the launcher restores the open app from the URL.
-	await page.reload();
-	await expect(toolbar).toContainText("Socket Lab");
-	await expect(app.getByRole("button", { name: "Connect" })).toBeVisible();
+	// Settings remember the answer.
+	await page.getByRole("button", { name: "Settings" }).click();
+	const settings = page.getByRole("dialog", { name: "Settings" });
+	await expect(settings.getByRole("combobox", { name: "Local network access" })).toHaveValue("denied");
+	await expect(settings).toContainText("signature verified");
 
-	// Details: identity, then remove.
-	await page.getByRole("button", { name: "App info" }).click();
-	const details = page.getByRole("dialog", { name: "Socket Lab" });
-	await expect(details).toContainText("signature verified");
-	await details.getByRole("button", { name: "Remove" }).click();
-	await details.getByRole("button", { name: "Remove" }).click();
-	await expect(details).toBeHidden();
-	await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
-	await expect(page.getByText("No apps yet")).toBeVisible();
-	expect(host.list()).toEqual([]);
+	// A second app gets a tab; tabs switch the visible app.
+	await page.keyboard.press("Escape");
+	await installExample(page, "Controlled Frame Lab");
+	const tabs = page.getByRole("tablist", { name: "Running apps" });
+	await expect(tabs.getByRole("tab")).toHaveCount(2);
+	await expect(tabs.getByRole("tab", { selected: true })).toContainText("Controlled Frame Lab");
+	await tabs.getByRole("tab", { name: /Socket Lab/ }).click();
+	await expect(visibleApp(page).getByRole("button", { name: "Listen on 127.0.0.1" })).toBeVisible();
+
+	// Stop one; remove the other.
+	await page.getByRole("button", { name: "Stop" }).click();
+	await expect(tabs).toBeHidden();
+	await page.getByRole("button", { name: "Settings" }).click();
+	await settings.getByRole("button", { name: "Remove app" }).click();
+	await settings.getByRole("button", { name: "Remove app" }).click();
+	await expect(settings).toBeHidden();
+	await expect.poll(() => host.list().length).toBe(1);
 	expect(errors).toEqual([]);
 });
 
-test("choosing a bundle file installs and opens it; bad files are rejected", async ({ page }) => {
+test("choosing a bundle file installs and runs it; bad files are reported", async ({ page }) => {
 	await page.goto(host.origin);
 	const input = page.getByLabel("Signed web bundle");
 	await input.setInputFiles({
@@ -89,7 +109,7 @@ test("choosing a bundle file installs and opens it; bad files are rejected", asy
 		mimeType: "application/octet-stream",
 		buffer: Buffer.from("not a bundle"),
 	});
-	await expect(page.getByRole("alert")).toBeVisible();
+	await expect(page.getByRole("alert").filter({ hasText: "Install failed" })).toBeVisible();
 	expect(host.list()).toEqual([]);
 
 	const bytes = await (await fetch(`${host.origin}/examples/controlled-frame-lab.swbn`)).arrayBuffer();
@@ -98,20 +118,19 @@ test("choosing a bundle file installs and opens it; bad files are rejected", asy
 		mimeType: "application/octet-stream",
 		buffer: Buffer.from(bytes),
 	});
-	const app = page.frameLocator(".surface iframe");
 	// The lab's bundled start page renders through the controlled-frame proxy.
 	await expect(
-		app.frameLocator("controlledframe iframe").getByRole("heading", { name: "Hello from the bundle" }),
-	).toBeVisible({
-		timeout: 20000,
-	});
-	await page.getByRole("button", { name: "Library", exact: true }).click();
-	const card = page
-		.getByRole("region", { name: "Installed" })
-		.getByRole("listitem")
-		.filter({ hasText: "Controlled Frame Lab" });
-	await expect(card).toContainText("Running");
-	await expect(card).toContainText("Controlled Frame");
-	// Installed examples leave the "Try an app" list.
-	await expect(page.getByRole("region", { name: "Try an app" })).not.toContainText("Controlled Frame Lab");
+		visibleApp(page)
+			.frameLocator("controlledframe iframe")
+			.getByRole("heading", { name: "Hello from the bundle" }),
+	).toBeVisible({ timeout: 20000 });
+
+	// Run restarts the app; Stop returns to the home screen with the app still selected.
+	await page.getByRole("button", { name: "Run" }).click();
+	await expect(status(page)).toHaveText("App running");
+	await page.getByRole("button", { name: "Stop" }).click();
+	await expect(page.getByRole("heading", { name: "Run an Isolated Web App" })).toBeVisible();
+	await expect(page.getByRole("combobox", { name: "App" }).locator("option:checked")).toHaveText(
+		"Controlled Frame Lab 1.0.1",
+	);
 });
